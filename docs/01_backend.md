@@ -6,65 +6,50 @@ Dokumen ini diturunkan dari **alur sistem lengkap** dan bekerja berpasangan deng
 
 ---
 
-## 1. Teknologi **[ASUMSI]**
+## 1. Teknologi (Implementasi Nyata: Laravel 12)
 
 | Kebutuhan | Pilihan |
 |---|---|
-| Runtime | Node.js 20+ |
-| Kerangka | Express |
-| Bahasa | TypeScript |
-| Database | PostgreSQL (lihat `02_database_postgresql.md`) |
-| Akses database | `pg` (SQL langsung, agar exclusion constraint dan transaksi mudah) |
-| Autentikasi | JWT (access token) + bcrypt untuk password |
-| Validasi | `zod` |
-| Unggah file | `multer` (hanya PDF) |
-| Pembuat memo PDF | `pdfkit` |
+| Runtime | PHP 8.2.12 (XAMPP) |
+| Kerangka | Laravel 12 |
+| Bahasa | PHP |
+| Database | PostgreSQL 17 (lihat `02_database_postgresql.md`) |
+| Akses database | Laravel Eloquent + Query Builder + SQL mentah untuk exclusion constraint & transaksi |
+| Autentikasi | Laravel Sanctum (token API) + Hash (bcrypt) untuk password |
+| Validasi | Laravel Form Request / Validasi bawaan |
+| Unggah file | Laravel Storage (hanya PDF) |
+| Pembuat memo PDF | `barryvdh/laravel-dompdf` (Dompdf 3.x) |
 | AI Agent | Anthropic API (tool use), model dari variabel lingkungan |
-| Log | `pino` |
+| Log | Laravel Logging |
 
 ---
 
-## 2. Struktur Folder
+## 2. Struktur Folder (Laravel 12)
 
 ```
 backend/
-├── src/
-│   ├── index.ts                 # titik masuk, setup Express
-│   ├── config/env.ts            # baca & validasi variabel lingkungan
-│   ├── db/
-│   │   ├── pool.ts              # koneksi PostgreSQL
-│   │   └── tx.ts                # helper transaksi
-│   ├── middleware/
-│   │   ├── auth.ts              # verifikasi JWT
-│   │   ├── peran.ts             # pembatas peran (admin/pengguna/pimpinan)
-│   │   ├── unggahPdf.ts         # multer + cek PDF
-│   │   └── galat.ts             # penanganan error
-│   ├── modules/
-│   │   ├── auth/                # login, daftar, profil
-│   │   ├── lokasi/              # daftar lokasi, ketersediaan
-│   │   ├── reservasi/           # Alur A
-│   │   ├── jadwal/              # Alur D (Atur Jadwal, acara kampus)
-│   │   ├── penggusuran/         # Alur B (kasus, negosiasi, catatan)
-│   │   ├── memo/                # Alur E
-│   │   ├── notifikasi/
-│   │   ├── asistenInfo/         # chatbot biasa (pembanding)
-│   │   └── laporan/             # untuk pimpinan
-│   ├── agent/
-│   │   ├── agentPenjadwal.ts    # loop agent
-│   │   ├── alat.ts              # definisi & pelaksana fungsi agent
-│   │   ├── pagar.ts             # aturan pembatas
-│   │   └── promptSistem.ts      # instruksi sistem agent
-│   └── utils/
-│       ├── waLink.ts            # pembuat tautan WhatsApp
-│       └── kodeReservasi.ts
-├── uploads/                     # surat & memo PDF (di luar folder publik)
-├── migrations/
+├── app/
+│   ├── Console/Commands/        # Custom artisan commands
+│   ├── Http/
+│   │   ├── Controllers/         # AuthController, ReservasiController, dll.
+│   │   ├── Middleware/          # Peran.php, dll.
+│   │   └── Requests/            # DaftarRequest, MasukRequest, dll.
+│   ├── Models/                  # Pengguna, Lokasi, Reservasi, dll.
+│   └── Providers/               # AppServiceProvider, dll.
+├── bootstrap/
+├── config/                      # database.php, sanctum.php, auth.php, dll.
+├── database/
+│   ├── migrations/              # Skema migrasi SQL mentah
+│   └── seeders/                 # DatabaseSeeder, PenggunaSeeder, dll.
+├── routes/
+│   ├── api.php                  # Endpoint API (/api/auth/...)
+│   └── web.php
+├── storage/                     # Penyimpanan file PDF surat & memo
 ├── tests/
-│   ├── bentrok.test.ts
-│   ├── penggusuran.test.ts
-│   └── skenario_sidang/         # skrip uji agent vs chatbot beralur tetap
+│   ├── Feature/                 # AuthTest, ReservasiTest, dll.
+│   └── Unit/                    # ExampleTest
 ├── .env.example
-└── package.json
+└── composer.json
 ```
 
 ---
@@ -72,17 +57,25 @@ backend/
 ## 3. Variabel Lingkungan (`.env.example`)
 
 ```
-PORT=4000
-DATABASE_URL=postgres://user:pass@localhost:5432/smartspace
-JWT_SECRET=ganti_dengan_rahasia_panjang
-JWT_EXPIRES_IN=8h
+APP_NAME=SMARTSPACE
+APP_ENV=local
+APP_KEY=
+APP_DEBUG=true
+APP_TIMEZONE=Asia/Jakarta
+APP_URL=http://localhost:8000
+
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=smartspace
+DB_USERNAME=smartspace_app
+DB_PASSWORD=
+
+SANCTUM_STATEFUL_DOMAINS=localhost:5173
 
 ANTHROPIC_API_KEY=isi_kunci_api
 ANTHROPIC_MODEL=isi_nama_model_yang_dipakai
-
-UPLOAD_DIR=./uploads
 MAX_PDF_MB=5
-CORS_ORIGIN=http://localhost:5173
 ```
 
 Nomor WA Bu Eci **tidak** disimpan di `.env`, melainkan di tabel `pengaturan` (`wa_admin_nomor`) agar bisa diganti tanpa deploy ulang.

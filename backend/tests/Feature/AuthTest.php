@@ -3,13 +3,14 @@
 namespace Tests\Feature;
 
 use App\Models\Pengguna;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class AuthTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     // ── Daftar ───────────────────────────────────────────────────────────
 
@@ -106,21 +107,24 @@ class AuthTest extends TestCase
 
     // ── Saya ─────────────────────────────────────────────────────────────
 
+    public function test_db_name(): void
+    {
+        $this->assertEquals('smartspace_test', DB::connection()->getDatabaseName());
+    }
+
     public function test_saya_dengan_token(): void
     {
         $pengguna = Pengguna::create([
-            'nama' => 'Tester', 'email' => 'tester@kampus.ac.id',
+            'nama' => 'Tester', 'email' => 'tester2@kampus.ac.id',
             'password_hash' => Hash::make('Test1234!'), 'peran' => 'pengguna',
         ]);
 
         $token = $pengguna->createToken('test')->plainTextToken;
 
-        $response = $this->getJson('/api/auth/saya', [
-            'Authorization' => "Bearer $token",
-        ]);
+        $response = $this->withToken($token)->getJson('/api/auth/saya');
 
         $response->assertOk()
-            ->assertJsonPath('pengguna.email', 'tester@kampus.ac.id');
+            ->assertJsonPath('pengguna.email', 'tester2@kampus.ac.id');
     }
 
     public function test_saya_tanpa_token_401(): void
