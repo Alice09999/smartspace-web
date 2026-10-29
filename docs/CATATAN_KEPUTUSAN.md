@@ -153,3 +153,17 @@ Dua hal berikut **tidak** dikerjakan pada tahap database dan sengaja ditunda:
 
 Yang sudah diuji pada tahap ini adalah jaminan level database: exclusion
 constraint menolak slot tumpang tindih, cascade slot, dan trigger log agent.
+
+---
+
+## 9. Fase B1: Fondasi Backend & Autentikasi (2026-10-29)
+
+**Keputusan & Implementasi:**
+- **Paket:** `laravel/sanctum` versi `v4.3.3` (kompatibel dengan Laravel 12 dan PHP 8.2).
+- **Model `Pengguna`:** Diubah menjadi `Authenticatable` dengan `HasApiTokens` dan `HasUuids`. Password divalidasi lewat `getAuthPassword()` yang mengembalikan kolom `password_hash`.
+- **Autentikasi Token:** Menggunakan token Bearer Sanctum (masa berlaku default 8 jam / 480 menit).
+- **Middleware Peran:** `App\Http\Middleware\Peran` (`peran:admin`, `peran:pengguna`, dst.) mengembalikan respons HTTP 403 dengan format JSON `{ "galat": "..." }` jika tidak sesuai peran.
+- **Exception Handler:** Seluruh respons error API dipetakan ke format JSON `{ "galat": "pesan jelas" }` (400, 401, 403, 404, 429, 500).
+- **CORS:** Diatur di `config/cors.php` dengan asal dari `CORS_ORIGIN` (`http://localhost:3000`).
+- **Rate Limit:** Limit khusus auth (10 req/menit) dan API umum (60 req/menit).
+- **Pengujian:** Seluruh tes fitur B1 (`AuthTest.php`) lulus (daftar, masuk, login gagal, akun non-aktif, profil `/saya`, keluar, token kedaluwarsa/hapus, dan format galat 404).
